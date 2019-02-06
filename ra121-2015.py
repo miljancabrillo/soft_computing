@@ -23,6 +23,8 @@ def find_lines(frame):
     kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (1, 2))
     frame_eroded = cv2.erode(frame_binary, kernel, iterations=3)
    
+    
+    
     lines = cv2.HoughLinesP(frame_eroded,rho = 1,theta = 1*np.pi/180,threshold = 160,minLineLength = 150,maxLineGap = 10)
     
     first_line = lines[0]
@@ -130,7 +132,7 @@ def select_roi(image_orig, image_bin,line):
     new_numbers = []
     for contour in contours: 
         x,y,w,h = cv2.boundingRect(contour) #koordinate i velicina granicnog pravougaonika
-        t = [x-15,y-15]        
+        t = [x-15, y-15]        
         if x>5:
             x=x-4
         if y>5:
@@ -169,16 +171,18 @@ file= open("out.txt","w+")
 file.write("RA 121/2015 Miljan Cabrilo\r")
 file.write("file	sum\r")
 
+json_file = open('model.json', 'r')
+model_json = json_file.read()
+json_file.close()
+ann = model_from_json(model_json)
+ann.load_weights("model.h5")
+
 i=0
 for i in range(0,10):
     cap = cv2.VideoCapture('data/video-'+str(i)+'.avi')
     totalSum = 0
 
-    json_file = open('model.json', 'r')
-    model_json = json_file.read()
-    json_file.close()
-    ann = model_from_json(model_json)
-    ann.load_weights("model.h5")
+   
 
     if cap.isOpened():
         ret,firstFrame = cap.read()
@@ -199,15 +203,17 @@ for i in range(0,10):
         
         frames_num +=1
         
-       
-        #if not frames_num%6 == 0:
-            #continue
+        #if frames_num == 60:
+          #  break
+        
+        #if not frames_num%5 == 0:
+        #    continue
         #print(frames_num)
         #pretvorim sliku u binarno i obradim je otvaranjem i erozijom
         frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY); 
-        ret, frame_binary = cv2.threshold(frame_gray, 230, 255, cv2.THRESH_BINARY)
+        ret, frame_binary = cv2.threshold(frame_gray, 222, 255, cv2.THRESH_BINARY)
         
-        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (2, 2))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))
         kernel1 = cv2.getStructuringElement(cv2.MORPH_CROSS , (2, 2))
       
         frame_binary_closed = cv2.dilate(frame_binary, kernel, iterations=2)
@@ -216,8 +222,8 @@ for i in range(0,10):
         img1, regions_upper_line, contours1, new_nums_upper = select_roi(frame.copy(),frame_binary_closed.copy(),upper_line)
         img2, regions_lower_line, contours1, new_nums_lower = select_roi(frame.copy(),frame_binary_closed.copy(),lower_line)
       
-       # plt.figure()
-       # plt.imshow(img2)
+        #plt.figure()
+        #cv2.imshow('Frame',img1)
         
         if not(not regions_upper_line):
             upper_line_numbers = update_numbers_array(upper_line_numbers,new_nums_upper)
